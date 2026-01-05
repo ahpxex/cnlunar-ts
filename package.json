@@ -8,6 +8,12 @@
   },
   "scripts": {
     "test": "bun test"
+  },
+  "module": "src/index.ts",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
   }
 }
-
