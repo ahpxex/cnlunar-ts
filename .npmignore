@@ -1,0 +1,24 @@
+# 测试文件
+test/
+*.test.ts
+*.spec.ts
+
+# 配置文件
+tsconfig.json
+.git/
+.github/
+
+# Node modules
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 其他
+*.log
+*.tgz
