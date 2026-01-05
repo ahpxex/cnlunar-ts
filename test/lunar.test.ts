@@ -24,6 +24,11 @@ p = json.loads(${JSON.stringify(payloadJson)})
 dt = datetime.datetime(p["y"], p["m"], p["d"], p["hh"], p["mm"])
 a = cnlunar.Lunar(dt, godType=p["godType"], year8Char=p["year8Char"])
 
+angel_demon_sorted = [
+  [sorted(a.angelDemon[0][0]), sorted(a.angelDemon[0][1])],
+  [sorted(a.angelDemon[1][0]), sorted(a.angelDemon[1][1])],
+]
+
 out = {
   "date": dt.strftime("%Y-%m-%d %H:%M:%S"),
   "godType": a.godType,
@@ -34,6 +39,7 @@ out = {
   "lunarYearCn": a.lunarYearCn,
   "lunarMonthCn": a.lunarMonthCn,
   "lunarDayCn": a.lunarDayCn,
+  "lunarMonthLong": a.lunarMonthLong,
   "phaseOfMoon": a.phaseOfMoon,
   "todaySolarTerms": a.todaySolarTerms,
   "nextSolarTerm": a.nextSolarTerm,
@@ -41,19 +47,34 @@ out = {
   "nextSolarTermYear": a.nextSolarTermYear,
   "thisYearSolarTermsDic": a.thisYearSolarTermsDic,
   "lunarSeason": a.lunarSeason,
+  "seasonNum": a.seasonNum,
+  "seasonType": a.seasonType,
   "year8Char": a.year8Char,
   "month8Char": a.month8Char,
   "day8Char": a.day8Char,
   "twohour8Char": a.twohour8Char,
   "twohour8CharList": a.twohour8CharList,
+  "yearHeavenNum": a.yearHeavenNum,
+  "yearEarthNum": a.yearEarthNum,
+  "monthHeavenNum": a.monthHeavenNum,
+  "monthEarthNum": a.monthEarthNum,
+  "dayHeavenNum": a.dayHeavenNum,
+  "dayEarthNum": a.dayEarthNum,
   "today12DayOfficer": a.today12DayOfficer,
   "today12DayGod": a.today12DayGod,
   "chineseYearZodiac": a.chineseYearZodiac,
   "chineseZodiacClash": a.chineseZodiacClash,
+  "zodiacMark3List": a.zodiacMark3List,
+  "zodiacMark6": a.zodiacMark6,
+  "zodiacWin": a.zodiacWin,
+  "zodiacLose": a.zodiacLose,
   "weekDayCn": a.weekDayCn,
   "starZodiac": a.starZodiac,
   "todayEastZodiac": a.todayEastZodiac,
   "today28Star": a.today28Star,
+  "spanDays": a.spanDays,
+  "isDe": a.isDe,
+  "angelDemon": angel_demon_sorted,
   "get_legalHolidays": a.get_legalHolidays(),
   "get_otherHolidays": a.get_otherHolidays(),
   "get_otherLunarHolidays": a.get_otherLunarHolidays(),
@@ -93,6 +114,13 @@ print(json.dumps(out, ensure_ascii=False, sort_keys=True))
 function tsSnapshot(c: Case): any {
   const dt = new Date(c.y, c.m - 1, c.d, c.hh, c.mm, 0, 0);
   const a = new Lunar(dt, { godType: c.godType, year8Char: c.year8Char });
+
+  // Sort angelDemon nested arrays for consistent comparison
+  const angelDemonSorted = [
+    [a.angelDemon[0][0].slice().sort(), a.angelDemon[0][1].slice().sort()],
+    [a.angelDemon[1][0].slice().sort(), a.angelDemon[1][1].slice().sort()],
+  ];
+
   return {
     date: `${c.y.toString().padStart(4, "0")}-${c.m.toString().padStart(2, "0")}-${c.d.toString().padStart(2, "0")} ${c.hh
       .toString()
@@ -105,6 +133,7 @@ function tsSnapshot(c: Case): any {
     lunarYearCn: a.lunarYearCn,
     lunarMonthCn: a.lunarMonthCn,
     lunarDayCn: a.lunarDayCn,
+    lunarMonthLong: a.lunarMonthLong,
     phaseOfMoon: a.phaseOfMoon,
     todaySolarTerms: a.todaySolarTerms,
     nextSolarTerm: a.nextSolarTerm,
@@ -112,19 +141,34 @@ function tsSnapshot(c: Case): any {
     nextSolarTermYear: a.nextSolarTermYear,
     thisYearSolarTermsDic: a.thisYearSolarTermsDic,
     lunarSeason: a.lunarSeason,
+    seasonNum: a.seasonNum,
+    seasonType: a.seasonType,
     year8Char: a.year8Char,
     month8Char: a.month8Char,
     day8Char: a.day8Char,
     twohour8Char: a.twohour8Char,
     twohour8CharList: a.twohour8CharList,
+    yearHeavenNum: a.yearHeavenNum,
+    yearEarthNum: a.yearEarthNum,
+    monthHeavenNum: a.monthHeavenNum,
+    monthEarthNum: a.monthEarthNum,
+    dayHeavenNum: a.dayHeavenNum,
+    dayEarthNum: a.dayEarthNum,
     today12DayOfficer: a.today12DayOfficer,
     today12DayGod: a.today12DayGod,
     chineseYearZodiac: a.chineseYearZodiac,
     chineseZodiacClash: a.chineseZodiacClash,
+    zodiacMark3List: a.zodiacMark3List,
+    zodiacMark6: a.zodiacMark6,
+    zodiacWin: a.zodiacWin,
+    zodiacLose: a.zodiacLose,
     weekDayCn: a.weekDayCn,
     starZodiac: a.starZodiac,
     todayEastZodiac: a.todayEastZodiac,
     today28Star: a.today28Star,
+    spanDays: a.spanDays,
+    isDe: a.isDe,
+    angelDemon: angelDemonSorted,
     get_legalHolidays: a.get_legalHolidays(),
     get_otherHolidays: a.get_otherHolidays(),
     get_otherLunarHolidays: a.get_otherLunarHolidays(),
@@ -428,5 +472,59 @@ test("solar terms properties", () => {
   expect(lunar.nextSolarTermDate).toHaveLength(2);
   expect(typeof lunar.nextSolarTermYear).toBe("number");
   expect(typeof lunar.thisYearSolarTermsDic).toBe("object");
+});
+
+test("additional zodiac properties", () => {
+  const lunar = new Lunar(new Date(2022, 10, 14, 10, 30));
+
+  expect(Array.isArray(lunar.zodiacMark3List)).toBe(true);
+  expect(typeof lunar.zodiacMark6).toBe("string");
+  expect(typeof lunar.zodiacWin).toBe("string");
+  expect(typeof lunar.zodiacLose).toBe("string");
+});
+
+test("heaven and earth numbers", () => {
+  const lunar = new Lunar(new Date(2022, 10, 14, 10, 30));
+
+  expect(typeof lunar.yearHeavenNum).toBe("number");
+  expect(typeof lunar.yearEarthNum).toBe("number");
+  expect(typeof lunar.monthHeavenNum).toBe("number");
+  expect(typeof lunar.monthEarthNum).toBe("number");
+  expect(typeof lunar.dayHeavenNum).toBe("number");
+  expect(typeof lunar.dayEarthNum).toBe("number");
+
+  expect(lunar.yearHeavenNum).toBeGreaterThanOrEqual(0);
+  expect(lunar.yearHeavenNum).toBeLessThanOrEqual(9);
+  expect(lunar.yearEarthNum).toBeGreaterThanOrEqual(0);
+  expect(lunar.yearEarthNum).toBeLessThanOrEqual(11);
+});
+
+test("season properties", () => {
+  const lunar = new Lunar(new Date(2022, 10, 14, 10, 30));
+
+  expect(typeof lunar.seasonNum).toBe("number");
+  expect(typeof lunar.seasonType).toBe("number");
+  expect(lunar.seasonNum).toBeGreaterThanOrEqual(0);
+  expect(lunar.seasonNum).toBeLessThanOrEqual(3);
+});
+
+test("additional properties", () => {
+  const lunar = new Lunar(new Date(2022, 10, 14, 10, 30));
+
+  expect(typeof lunar.lunarMonthLong).toBe("boolean");
+  expect(typeof lunar.spanDays).toBe("number");
+  expect(typeof lunar.isDe).toBe("boolean");
+  expect(lunar.spanDays).toBeGreaterThanOrEqual(0);
+});
+
+test("angelDemon structure", () => {
+  const lunar = new Lunar(new Date(2022, 10, 14, 10, 30));
+
+  expect(Array.isArray(lunar.angelDemon)).toBe(true);
+  expect(lunar.angelDemon).toHaveLength(2);
+  expect(Array.isArray(lunar.angelDemon[0])).toBe(true);
+  expect(lunar.angelDemon[0]).toHaveLength(2);
+  expect(Array.isArray(lunar.angelDemon[0][0])).toBe(true);
+  expect(Array.isArray(lunar.angelDemon[0][1])).toBe(true);
 });
 
