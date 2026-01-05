@@ -8,7 +8,6 @@ TypeScript/Bun 版中国农历库，移植自同仓库中的 Python 版 cnlunar�
 2. 无数据库依赖，运行快速，提供丰富的农历信息
 3. 主要内容来自《钦定协纪辨方书》，每一个神煞宜忌都有依据
 4. 开源免费，类型安全的 TypeScript 实现
-5. 完全兼容 Python 版本的数据输出，通过严格的对比测试
 
 ## 感谢
 
@@ -183,13 +182,11 @@ new Lunar(date?: Date, options?: LunarOptions)
 
 ### 运行测试
 
-项目包含完整的测试套件，与 Python 版本进行对比验证：
+项目包含完整的测试套件：
 
 ```bash
 bun test
 ```
-
-测试会自动调用 Python 版本作为参照，确保 TypeScript 版本的输出与 Python 版本完全一致。
 
 ### 项目结构
 
@@ -225,7 +222,6 @@ cnlunar-bun/
 ### 开发规范
 
 - 遵循 TypeScript 最佳实践
-- 保持与 Python 版本的数据输出一致性
 - 添加测试用例覆盖新功能
 - 更新文档说明新增的 API
 
