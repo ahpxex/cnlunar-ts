@@ -53,6 +53,11 @@ export type LunarOptions = {
   year8Char?: Year8CharMode;
 };
 
+type SolarTermName = (typeof SOLAR_TERMS_NAME_LIST)[number];
+type HeavenlyEarth = (typeof the60HeavenlyEarth)[number];
+type EarthlyBranch = (typeof the12EarthlyBranches)[number];
+type HeavenlyStem = (typeof the10HeavenlyStems)[number];
+
 function pyIndex<T>(arr: ReadonlyArray<T>, index: number): T {
   const len = arr.length;
   let idx = index;
@@ -210,11 +215,17 @@ export class Lunar {
     this.lunarDay = 1;
     this.spanDays = 0;
     this.monthDaysList = [0, 0, 0];
+    this.lunarMonthLong = false;
 
     [this.lunarYear, this.lunarMonth, this.lunarDay] = this.get_lunarDateNum();
     [this.lunarYearCn, this.lunarMonthCn, this.lunarDayCn] = this.get_lunarCn();
     this.phaseOfMoon = this.getPhaseOfMoon();
 
+    this.nextSolarNum = 0;
+    this.nextSolarTerm = SOLAR_TERMS_NAME_LIST[0];
+    this.nextSolarTermDate = [1, 1];
+    this.nextSolarTermYear = this._dateParts.year;
+    this.thisYearSolarTermsDateList = [];
     this.todaySolarTerms = this.get_todaySolarTerms();
     this._x = this.getBeginningOfSpringX(year8CharMode);
 
@@ -244,6 +255,10 @@ export class Lunar {
     this.today12DayGod = "";
     this.get_today12DayOfficer();
 
+    this.zodiacMark6 = "";
+    this.zodiacMark3List = [];
+    this.zodiacWin = "";
+    this.zodiacLose = "";
     this.chineseYearZodiac = this.get_chineseYearZodiac();
     this.chineseZodiacClash = this.get_chineseZodiacClash();
     this.weekDayCn = this.get_weekDayCn();
@@ -296,7 +311,7 @@ export class Lunar {
   }
 
   get_lunarMonthCN(): string {
-    let lunarMonth = pyIndex(lunarMonthNameList, pyMod(this.lunarMonth - 1, 12));
+    let lunarMonth: string = pyIndex(lunarMonthNameList, pyMod(this.lunarMonth - 1, 12));
     let thisLunarMonthDays = this.monthDaysList[0];
     if (this.isLunarLeapMonth) {
       lunarMonth = `闰${lunarMonth}`;
@@ -460,7 +475,7 @@ export class Lunar {
   }
 
   get_eastZodiac(): string {
-    const idx = SOLAR_TERMS_NAME_LIST.indexOf(this.nextSolarTerm);
+    const idx = SOLAR_TERMS_NAME_LIST.indexOf(this.nextSolarTerm as SolarTermName);
     const todayEastZodiac = pyIndex(EAST_ZODIAC_LIST, Math.floor(pyMod(idx - 1, 24) / 2));
     return todayEastZodiac;
   }
@@ -486,7 +501,7 @@ export class Lunar {
   }
 
   get_twohour8CharList(): string[] {
-    const begin = pyMod(the60HeavenlyEarth.indexOf(this.day8Char) * 12, 60);
+    const begin = pyMod(the60HeavenlyEarth.indexOf(this.day8Char as HeavenlyEarth) * 12, 60);
     const doubled = [...the60HeavenlyEarth, ...the60HeavenlyEarth];
     return doubled.slice(begin, begin + 13);
   }
@@ -500,16 +515,16 @@ export class Lunar {
   }
 
   get_earthNum(): [number, number, number] {
-    this.yearEarthNum = the12EarthlyBranches.indexOf(this.year8Char[1]!);
-    this.monthEarthNum = the12EarthlyBranches.indexOf(this.month8Char[1]!);
-    this.dayEarthNum = the12EarthlyBranches.indexOf(this.day8Char[1]!);
+    this.yearEarthNum = the12EarthlyBranches.indexOf(this.year8Char[1]! as EarthlyBranch);
+    this.monthEarthNum = the12EarthlyBranches.indexOf(this.month8Char[1]! as EarthlyBranch);
+    this.dayEarthNum = the12EarthlyBranches.indexOf(this.day8Char[1]! as EarthlyBranch);
     return [this.yearEarthNum, this.monthEarthNum, this.dayEarthNum];
   }
 
   get_heavenNum(): [number, number, number] {
-    this.yearHeavenNum = the10HeavenlyStems.indexOf(this.year8Char[0]!);
-    this.monthHeavenNum = the10HeavenlyStems.indexOf(this.month8Char[0]!);
-    this.dayHeavenNum = the10HeavenlyStems.indexOf(this.day8Char[0]!);
+    this.yearHeavenNum = the10HeavenlyStems.indexOf(this.year8Char[0]! as HeavenlyStem);
+    this.monthHeavenNum = the10HeavenlyStems.indexOf(this.month8Char[0]! as HeavenlyStem);
+    this.dayHeavenNum = the10HeavenlyStems.indexOf(this.day8Char[0]! as HeavenlyStem);
     return [this.yearHeavenNum, this.monthHeavenNum, this.dayHeavenNum];
   }
 
@@ -601,7 +616,7 @@ export class Lunar {
   }
 
   get_nayin(): string {
-    return pyIndex(theHalf60HeavenlyEarth5ElementsList, Math.floor(the60HeavenlyEarth.indexOf(this.day8Char) / 2));
+    return pyIndex(theHalf60HeavenlyEarth5ElementsList, Math.floor(the60HeavenlyEarth.indexOf(this.day8Char as HeavenlyEarth) / 2));
   }
 
   get_today5Elements(): string[] {
@@ -649,7 +664,7 @@ export class Lunar {
   }
 
   get_fetalGod(): string {
-    return pyIndex(fetalGodList, the60HeavenlyEarth.indexOf(this.day8Char));
+    return pyIndex(fetalGodList, the60HeavenlyEarth.indexOf(this.day8Char as HeavenlyEarth));
   }
 
   get_twohourLuckyList(): string[] {
