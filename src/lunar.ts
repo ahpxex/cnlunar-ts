@@ -2,48 +2,33 @@
 
 import { addDays, DateInput, DateParts, diffDays, getIsoWeekInfo, getWeekdayIndexMonday0, toDateParts } from "./datetime";
 import {
-  EAST_ZODIAC_LIST,
   LEAPMONTH_NUM_BIT,
   MONTH_DAY_BIT,
   SOLAR_TERMS_NAME_LIST,
   STAR_ZODIAC_DATE,
-  STAR_ZODIAC_NAME,
   START_YEAR,
   bujiang,
-  chinese12DayGods,
   chinese12DayOfficers,
   chinese8Trigrams,
-  chineseZodiacNameList,
   day8CharThing,
-  directionList,
-  fetalGodList,
   luckyGodDirection,
-  lunarDayNameList,
   lunarMonthData,
-  lunarMonthNameList,
   lunarNewYearList,
   mascotGodDirection,
-  meridiansName,
   moonNobleDirection,
   officerThings,
-  pengTatooList,
   sunNobleDirection,
   the10HeavenlyStems,
-  the10HeavenlyStems5ElementsList,
   the12EarthlyBranches,
-  the12EarthlyBranches5ElementsList,
-  the28StarsList,
   the60HeavenlyEarth,
-  theHalf60HeavenlyEarth5ElementsList,
   thingsSort,
   twohourLuckyTimeList,
-  upperNum,
   wealthGodDirection,
-  weekDay,
 } from "./config";
-import { legalHolidays, legalLunarHolidays, legalSolarTermsHoliday, otherHolidaysByMonth, otherLunarHolidaysByMonth } from "./holidays";
+import { otherHolidaysByMonth, otherLunarHolidaysByMonth } from "./holidays";
 import { getTheYearAllSolarTermsList } from "./solar24";
 import { rfAdd, rfRemove, sortCollation } from "./tools";
+import { getTranslations, type Locale, type TranslationData } from "./i18n";
 
 export type GodType = "8char" | "cnlunar";
 export type Year8CharMode = "year" | "beginningOfSpring";
@@ -51,6 +36,7 @@ export type Year8CharMode = "year" | "beginningOfSpring";
 export type LunarOptions = {
   godType?: GodType;
   year8Char?: Year8CharMode;
+  locale?: Locale;
 };
 
 type SolarTermName = (typeof SOLAR_TERMS_NAME_LIST)[number];
@@ -112,6 +98,7 @@ function uniqueStrings(list: string[]): string[] {
 
 export class Lunar {
   godType: GodType;
+  private readonly _t: TranslationData;
 
   date: Date;
   private readonly _dateParts: DateParts;
@@ -163,6 +150,7 @@ export class Lunar {
 
   today12DayOfficer: string;
   today12DayGod: string;
+  private _dayOfficerIdx: number;  // Internal index for lookups
 
   chineseYearZodiac: string;
   chineseZodiacClash: string;
@@ -193,8 +181,10 @@ export class Lunar {
   constructor(date: DateInput = new Date(), options: LunarOptions = {}) {
     const godType = options.godType ?? "8char";
     const year8CharMode = options.year8Char ?? "year";
+    const locale = options.locale ?? "zh";
 
     this.godType = godType;
+    this._t = getTranslations(locale);
     this._dateParts = toDateParts(date);
     this.date = new Date(
       this._dateParts.year,
@@ -253,6 +243,7 @@ export class Lunar {
     this.twohour8Char = this.get_twohour8Char();
     this.today12DayOfficer = "";
     this.today12DayGod = "";
+    this._dayOfficerIdx = 0;
     this.get_today12DayOfficer();
 
     this.zodiacMark6 = "";
@@ -276,12 +267,12 @@ export class Lunar {
     this.goodThing = [];
     this.badThing = [];
     this.todayLevel = -1;
-    this.todayLevelName = "无";
+    this.todayLevelName = this._t.labels.none;
     this.thingLevelName = "";
     this.isDe = false;
 
     this.angelDemon = this.get_AngelDemon();
-    this.meridians = pyIndex(meridiansName, pyMod(this.twohourNum, 12));
+    this.meridians = pyIndex(this._t.meridians, pyMod(this.twohourNum, 12));
   }
 
   private getBeginningOfSpringX(year8CharMode: Year8CharMode): number {
@@ -305,52 +296,52 @@ export class Lunar {
   get_lunarYearCN(): string {
     this._upper_year = "";
     for (const ch of String(this.lunarYear)) {
-      this._upper_year += pyIndex(upperNum, Number(ch));
+      this._upper_year += pyIndex(this._t.upperNumerals, Number(ch));
     }
     return this._upper_year;
   }
 
   get_lunarMonthCN(): string {
-    let lunarMonth: string = pyIndex(lunarMonthNameList, pyMod(this.lunarMonth - 1, 12));
+    let lunarMonth: string = pyIndex(this._t.lunarMonthNames, pyMod(this.lunarMonth - 1, 12));
     let thisLunarMonthDays = this.monthDaysList[0];
     if (this.isLunarLeapMonth) {
-      lunarMonth = `闰${lunarMonth}`;
+      lunarMonth = `${this._t.labels.leap}${lunarMonth}`;
       thisLunarMonthDays = this.monthDaysList[2];
     }
     this.lunarMonthLong = thisLunarMonthDays >= 30;
-    const s = this.lunarMonthLong ? "大" : "小";
+    const s = this.lunarMonthLong ? this._t.labels.large : this._t.labels.small;
     return lunarMonth + s;
   }
 
   get_lunarCn(): [string, string, string] {
-    return [this.get_lunarYearCN(), this.get_lunarMonthCN(), pyIndex(lunarDayNameList, pyMod(this.lunarDay - 1, 30))];
+    return [this.get_lunarYearCN(), this.get_lunarMonthCN(), pyIndex(this._t.lunarDayNames, pyMod(this.lunarDay - 1, 30))];
   }
 
   getPhaseOfMoon(): string {
-    if (this.lunarDay - Number(this.lunarMonthLong) === 15) return "望";
-    if (this.lunarDay === 1) return "朔";
-    if (this.lunarDay >= 7 && this.lunarDay <= 8) return "上弦";
-    if (this.lunarDay >= 22 && this.lunarDay <= 23) return "下弦";
+    if (this.lunarDay - Number(this.lunarMonthLong) === 15) return this._t.labels.fullMoon;
+    if (this.lunarDay === 1) return this._t.labels.newMoon;
+    if (this.lunarDay >= 7 && this.lunarDay <= 8) return this._t.labels.firstQuarter;
+    if (this.lunarDay >= 22 && this.lunarDay <= 23) return this._t.labels.lastQuarter;
     return "";
   }
 
   get_chineseYearZodiac(): string {
     const idx = pyMod(this.lunarYear - 4, 12) - this._x;
-    return pyIndex(chineseZodiacNameList, idx);
+    return pyIndex(this._t.chineseZodiacNames, idx);
   }
 
   get_chineseZodiacClash(): string {
     const zodiacNum = this.dayEarthNum;
     const zodiacClashNum = pyMod(zodiacNum + 6, 12);
-    this.zodiacMark6 = pyIndex(chineseZodiacNameList, pyMod(25 - zodiacNum, 12));
-    this.zodiacMark3List = [pyIndex(chineseZodiacNameList, pyMod(zodiacNum + 4, 12)), pyIndex(chineseZodiacNameList, pyMod(zodiacNum + 8, 12))];
-    this.zodiacWin = pyIndex(chineseZodiacNameList, zodiacNum);
-    this.zodiacLose = pyIndex(chineseZodiacNameList, zodiacClashNum);
-    return `${this.zodiacWin}日冲${this.zodiacLose}`;
+    this.zodiacMark6 = pyIndex(this._t.chineseZodiacNames, pyMod(25 - zodiacNum, 12));
+    this.zodiacMark3List = [pyIndex(this._t.chineseZodiacNames, pyMod(zodiacNum + 4, 12)), pyIndex(this._t.chineseZodiacNames, pyMod(zodiacNum + 8, 12))];
+    this.zodiacWin = pyIndex(this._t.chineseZodiacNames, zodiacNum);
+    this.zodiacLose = pyIndex(this._t.chineseZodiacNames, zodiacClashNum);
+    return `${this.zodiacWin}${this._t.labels.dayClash}${this.zodiacLose}`;
   }
 
   get_weekDayCn(): string {
-    return pyIndex(weekDay, getWeekdayIndexMonday0(this._dateParts));
+    return pyIndex(this._t.weekDays, getWeekdayIndexMonday0(this._dateParts));
   }
 
   getMonthLeapMonthLeapDays(): [number, number, number] {
@@ -456,10 +447,10 @@ export class Lunar {
     const findDate: [number, number] = [this._dateParts.month, this._dateParts.day];
     this.nextSolarNum = this.getNextNum(findDate, solarTermsDateList);
 
-    let todaySolarTerm = "无";
+    let todaySolarTerm = this._t.labels.none;
     const idx = solarTermsDateList.findIndex((d) => d[0] === findDate[0] && d[1] === findDate[1]);
     if (idx >= 0) {
-      todaySolarTerm = pyIndex(SOLAR_TERMS_NAME_LIST, idx);
+      todaySolarTerm = pyIndex(this._t.solarTermsNames, idx);
     }
 
     const last = solarTermsDateList[solarTermsDateList.length - 1]!;
@@ -468,15 +459,15 @@ export class Lunar {
       solarTermsDateList = this.getSolarTermsDateList(year);
     }
 
-    this.nextSolarTerm = pyIndex(SOLAR_TERMS_NAME_LIST, this.nextSolarNum);
+    this.nextSolarTerm = pyIndex(this._t.solarTermsNames, this.nextSolarNum);
     this.nextSolarTermDate = pyIndex(solarTermsDateList, this.nextSolarNum);
     this.nextSolarTermYear = year;
     return todaySolarTerm;
   }
 
   get_eastZodiac(): string {
-    const idx = SOLAR_TERMS_NAME_LIST.indexOf(this.nextSolarTerm as SolarTermName);
-    const todayEastZodiac = pyIndex(EAST_ZODIAC_LIST, Math.floor(pyMod(idx - 1, 24) / 2));
+    const idx = SOLAR_TERMS_NAME_LIST.indexOf(SOLAR_TERMS_NAME_LIST[this.nextSolarNum]!);
+    const todayEastZodiac = pyIndex(this._t.eastZodiacList, Math.floor(pyMod(idx - 1, 24) / 2));
     return todayEastZodiac;
   }
 
@@ -531,28 +522,37 @@ export class Lunar {
   get_season(): void {
     this.seasonType = pyMod(this.monthEarthNum, 3);
     this.seasonNum = Math.floor(pyMod(this.monthEarthNum - 2, 12) / 3);
-    this.lunarSeason = ["仲", "季", "孟"][this.seasonType]! + ["春", "夏", "秋", "冬"][this.seasonNum]!;
+    const seasonPrefix = [this._t.labels.midSeason, this._t.labels.lateSeason, this._t.labels.earlySeason][this.seasonType]!;
+    const seasonName = [this._t.labels.spring, this._t.labels.summer, this._t.labels.autumn, this._t.labels.winter][this.seasonNum]!;
+    this.lunarSeason = seasonPrefix + seasonName;
   }
 
   get_starZodiac(): string {
     const findDate: [number, number] = [this._dateParts.month, this._dateParts.day];
     const count = STAR_ZODIAC_DATE.filter((y) => tupleLE(y as [number, number], findDate)).length % 12;
-    return pyIndex(STAR_ZODIAC_NAME, count);
+    return pyIndex(this._t.starZodiacNames, count);
   }
 
   get_legalHolidays(): string {
     let temp = "";
-    if (this.todaySolarTerms in legalSolarTermsHoliday) {
-      temp += `${legalSolarTermsHoliday[this.todaySolarTerms]!} `;
+    // Use the internal Chinese solar term name for lookup
+    const zhSolarTermsIdx = this.thisYearSolarTermsDateList.findIndex(
+      (d) => d[0] === this._dateParts.month && d[1] === this._dateParts.day
+    );
+    if (zhSolarTermsIdx >= 0) {
+      const zhSolarTerm = SOLAR_TERMS_NAME_LIST[zhSolarTermsIdx];
+      if (zhSolarTerm && zhSolarTerm in this._t.holidays.legalSolarTerms) {
+        temp += `${this._t.holidays.legalSolarTerms[zhSolarTerm]!} `;
+      }
     }
     const solarKey = `${this._dateParts.month}-${this._dateParts.day}`;
-    if (solarKey in legalHolidays) {
-      temp += `${legalHolidays[solarKey]!} `;
+    if (solarKey in this._t.holidays.legalSolar) {
+      temp += `${this._t.holidays.legalSolar[solarKey]!} `;
     }
     if (!(this.lunarMonth > 12)) {
       const lunarKey = `${this.lunarMonth}-${this.lunarDay}`;
-      if (lunarKey in legalLunarHolidays) {
-        temp += legalLunarHolidays[lunarKey]!;
+      if (lunarKey in this._t.holidays.legalLunar) {
+        temp += this._t.holidays.legalLunar[lunarKey]!;
       }
     }
     return temp.trim().replaceAll(" ", ",");
@@ -564,31 +564,37 @@ export class Lunar {
     const m = this._dateParts.month;
     const d = this._dateParts.day;
     const { isoWeek: wn, isoWeekday: w } = getIsoWeekInfo({ year: y, month: m, day: d });
-    const eastHolidays: Record<number, [number, number, string]> = { 5: [2, 7, "母亲节"], 6: [3, 7, "父亲节"] };
-    if (m in eastHolidays) {
+    // Mother's Day and Father's Day - lookup from otherSolar holidays
+    const eastHolidayKeys: Record<number, [number, number, string]> = { 5: [2, 7, "5-mother"], 6: [3, 7, "6-father"] };
+    const eastHolidayNames: Record<string, string> = this._t.holidays.otherSolar["5-mother"]
+      ? { "5-mother": this._t.holidays.otherSolar["5-mother"], "6-father": this._t.holidays.otherSolar["6-father"] }
+      : { "5-mother": "Mother's Day", "6-father": "Father's Day" };
+    if (m in eastHolidayKeys) {
       const t1dwn = getIsoWeekInfo({ year: y, month: m, day: 1 }).isoWeek;
-      const [wantNth, wantWeekday, name] = eastHolidays[m]!;
+      const [wantNth, wantWeekday, key] = eastHolidayKeys[m]!;
       if (wn - t1dwn + 1 === wantNth && w === wantWeekday) {
-        tempList.push(name);
+        tempList.push(eastHolidayNames[key] ?? key);
       }
     }
-    const holidayDic = otherHolidaysByMonth[m - 1] ?? {};
-    if (d in holidayDic) {
-      tempList.push(holidayDic[d]!);
+    const solarKey = `${m}-${d}`;
+    if (solarKey in this._t.holidays.otherSolar) {
+      tempList.push(this._t.holidays.otherSolar[solarKey]!);
     }
     return tempList.length ? tempList.join(",") : "";
   }
 
   get_otherLunarHolidays(): string {
     if (!(this.lunarMonth > 12)) {
-      const holidayDic = otherLunarHolidaysByMonth[this.lunarMonth - 1] ?? {};
-      if (this.lunarDay in holidayDic) return holidayDic[this.lunarDay]!;
+      const lunarKey = `${this.lunarMonth}-${this.lunarDay}`;
+      if (lunarKey in this._t.holidays.otherLunar) {
+        return this._t.holidays.otherLunar[lunarKey]!;
+      }
     }
     return "";
   }
 
   get_pengTaboo(long = 9, delimit = ","): string {
-    return pengTatooList[this.dayHeavenNum]!.slice(0, long) + delimit + pengTatooList[this.dayEarthNum + 10]!.slice(0, long);
+    return this._t.pengTaboo[this.dayHeavenNum]!.slice(0, long) + delimit + this._t.pengTaboo[this.dayEarthNum + 10]!.slice(0, long);
   }
 
   get_today12DayOfficer(): [string, string, string] {
@@ -602,41 +608,34 @@ export class Lunar {
 
     const thisMonthStartGodNum = pyMod(men, 12);
     const apartNum = this.dayEarthNum - thisMonthStartGodNum;
-    this.today12DayOfficer = chinese12DayOfficers[pyMod(apartNum, 12)]!;
+    this._dayOfficerIdx = pyMod(apartNum, 12);
+    this.today12DayOfficer = this._t.dayOfficers12[this._dayOfficerIdx]!;
 
     const eclipticGodNum = pyMod(this.dayEarthNum - [8, 10, 0, 2, 4, 6, 8, 10, 0, 2, 4, 6][men]!, 12);
-    this.today12DayGod = pyIndex(chinese12DayGods, pyMod(eclipticGodNum, 12));
-    const dayName = [0, 1, 4, 5, 7, 10].includes(eclipticGodNum) ? "黄道日" : "黑道日";
+    this.today12DayGod = pyIndex(this._t.dayGods12, pyMod(eclipticGodNum, 12));
+    const dayName = [0, 1, 4, 5, 7, 10].includes(eclipticGodNum) ? this._t.labels.yellowRoadDay : this._t.labels.blackRoadDay;
     return [this.today12DayOfficer, this.today12DayGod, dayName];
   }
 
   get_the28Stars(): string {
     const apartDays = diffDays(this._dateParts, { year: 2019, month: 1, day: 17, hour: 0, minute: 0, second: 0 });
-    return pyIndex(the28StarsList, pyMod(apartDays, 28));
+    return pyIndex(this._t.stars28, pyMod(apartDays, 28));
   }
 
   get_nayin(): string {
-    return pyIndex(theHalf60HeavenlyEarth5ElementsList, Math.floor(the60HeavenlyEarth.indexOf(this.day8Char as HeavenlyEarth) / 2));
+    return pyIndex(this._t.nayin5Elements, Math.floor(the60HeavenlyEarth.indexOf(this.day8Char as HeavenlyEarth) / 2));
   }
 
   get_today5Elements(): string[] {
     const nayin = this.get_nayin();
     return [
-      "天干",
-      this.day8Char[0]!,
-      `属${pyIndex(the10HeavenlyStems5ElementsList, this.dayHeavenNum)}`,
-      "地支",
-      this.day8Char[1]!,
-      `属${pyIndex(the12EarthlyBranches5ElementsList, this.dayEarthNum)}`,
-      "纳音",
-      nayin[nayin.length - 1]!,
-      `属${nayin[nayin.length - 1]!}`,
-      "廿八宿",
-      this.today28Star[0]!,
-      "宿",
-      "十二神",
+      this._t.heavenlyStems[this.dayHeavenNum]!,
+      pyIndex(this._t.heavenlyStems5Elements, this.dayHeavenNum),
+      this._t.earthlyBranches[this.dayEarthNum]!,
+      pyIndex(this._t.earthlyBranches5Elements, this.dayEarthNum),
+      nayin,
+      this.today28Star,
       this.today12DayOfficer,
-      "日",
     ];
   }
 
@@ -652,26 +651,26 @@ export class Lunar {
     const getDir = (dirStr: string): string => {
       const trigram = dirStr[todayNum]!;
       const idx = chinese8Trigrams.indexOf(trigram);
-      return pyIndex(directionList, idx);
+      return pyIndex(this._t.directions, idx);
     };
     return [
-      `喜神${getDir(luckyGodDirection)}`,
-      `财神${getDir(wealthGodDirection)}`,
-      `福神${getDir(mascotGodDirection)}`,
-      `阳贵${getDir(sunNobleDirection)}`,
-      `阴贵${getDir(moonNobleDirection)}`,
+      `${this._t.labels.luckyGod}${getDir(luckyGodDirection)}`,
+      `${this._t.labels.wealthGod}${getDir(wealthGodDirection)}`,
+      `${this._t.labels.mascotGod}${getDir(mascotGodDirection)}`,
+      `${this._t.labels.sunNoble}${getDir(sunNobleDirection)}`,
+      `${this._t.labels.moonNoble}${getDir(moonNobleDirection)}`,
     ];
   }
 
   get_fetalGod(): string {
-    return pyIndex(fetalGodList, the60HeavenlyEarth.indexOf(this.day8Char as HeavenlyEarth));
+    return pyIndex(this._t.fetalGodPositions, the60HeavenlyEarth.indexOf(this.day8Char as HeavenlyEarth));
   }
 
   get_twohourLuckyList(): string[] {
     const tmp2List = (tmp: number): string[] => {
       const out: string[] = [];
       for (let i = 1; i <= 12; i += 1) {
-        out.push(tmp & 2 ** (12 - i) ? "凶" : "吉");
+        out.push(tmp & 2 ** (12 - i) ? this._t.labels.inauspicious : this._t.labels.auspicious);
       }
       return out;
     };
@@ -778,18 +777,10 @@ export class Lunar {
       }
     }
 
-    const levelDic: Record<number, string> = {
-      0: "上：吉足胜凶，从宜不从忌。",
-      1: "上次：吉足抵凶，遇德从宜不从忌，不遇从宜亦从忌。",
-      2: "中：吉不抵凶，遇德从宜不从忌，不遇从忌不从宜。",
-      3: "中次：凶胜于吉，遇德从宜亦从忌，不遇从忌不从宜。",
-      4: "下:凶又逢凶，遇德从忌不从宜，不遇诸事皆忌。",
-      5: "下下：凶叠大凶，遇德亦诸事皆忌。（卯酉月，灾煞遇月破、月厌，月厌遇灾煞、月破）",
-      [-1]: "无",
-    };
+    const levelDic: Record<number, string> = this._t.todayLevels;
     this.todayLevel = l;
-    this.todayLevelName = levelDic[l] ?? "无";
-    const thingLevelDic: Record<number, string> = { 0: "从宜不从忌", 1: "从宜亦从忌", 2: "从忌不从宜", 3: "诸事皆忌" };
+    this.todayLevelName = levelDic[l] ?? this._t.labels.none;
+    const thingLevelDic: Record<number, string> = this._t.thingLevels;
 
     this.isDe = false;
     for (const i of this.goodGodName) {
@@ -828,8 +819,9 @@ export class Lunar {
     } = {
       goodName: [],
       badName: [],
-      goodThing: [...(officerThings as any)[this.today12DayOfficer][0]],
-      badThing: [...(officerThings as any)[this.today12DayOfficer][1]],
+      // Use the Chinese day officer key for internal lookups
+      goodThing: [...(officerThings as any)[chinese12DayOfficers[this._dayOfficerIdx]][0]],
+      badThing: [...(officerThings as any)[chinese12DayOfficers[this._dayOfficerIdx]][1]],
     };
 
     const mrY13: Array<[number, number]> = [

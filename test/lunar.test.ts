@@ -147,3 +147,59 @@ test("angelDemon structure", () => {
   expect(Array.isArray(lunar.angelDemon[0][0])).toBe(true);
   expect(Array.isArray(lunar.angelDemon[0][1])).toBe(true);
 });
+
+// i18n tests
+test("default locale is Chinese (backward compatible)", () => {
+  const lunar = new Lunar(new Date(2022, 10, 14, 10, 30), { godType: "8char" });
+
+  // Should match existing Chinese tests
+  expect(lunar.lunarYearCn).toBe("二零二二");
+  expect(lunar.lunarMonthCn).toBe("十月大");
+  expect(lunar.lunarDayCn).toBe("廿一");
+  expect(lunar.chineseYearZodiac).toBe("虎");
+  expect(lunar.starZodiac).toBe("天蝎座");
+  expect(lunar.weekDayCn).toBe("星期一");
+});
+
+test("English locale returns English strings", () => {
+  const lunar = new Lunar(new Date(2022, 10, 14, 10, 30), { godType: "8char", locale: "en" });
+
+  expect(lunar.lunarYearCn).toBe("TwoZeroTwoTwo");
+  expect(lunar.lunarMonthCn).toBe("10th MonthLong");
+  expect(lunar.lunarDayCn).toBe("21st");
+  expect(lunar.chineseYearZodiac).toBe("Tiger");
+  expect(lunar.starZodiac).toBe("Scorpio");
+  expect(lunar.weekDayCn).toBe("Monday");
+});
+
+test("English zodiac names", () => {
+  const lunar = new Lunar(new Date(2023, 0, 22), { locale: "en" });
+  expect(lunar.chineseYearZodiac).toBe("Rabbit");
+});
+
+test("English solar terms", () => {
+  const lunar = new Lunar(new Date(2022, 11, 22, 5, 48), { locale: "en" });
+  expect(lunar.todaySolarTerms).toBe("Winter Solstice");
+});
+
+test("English next solar term", () => {
+  const lunar = new Lunar(new Date(2022, 10, 14), { locale: "en" });
+  expect(lunar.nextSolarTerm).toBe("Minor Snow");
+});
+
+test("locale option can be combined with other options", () => {
+  const lunar = new Lunar(new Date(2022, 10, 14, 10, 30), {
+    godType: "8char",
+    year8Char: "beginningOfSpring",
+    locale: "en",
+  });
+
+  expect(lunar.godType).toBe("8char");
+  expect(lunar.chineseYearZodiac).toBe("Tiger");
+});
+
+test("Chinese locale explicit", () => {
+  const lunar = new Lunar(new Date(2022, 10, 14), { locale: "zh" });
+  expect(lunar.chineseYearZodiac).toBe("虎");
+  expect(lunar.starZodiac).toBe("天蝎座");
+});
