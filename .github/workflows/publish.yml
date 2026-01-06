@@ -4,10 +4,6 @@ on:
   release:
     types: [created]
 
-defaults:
-  run:
-    working-directory: cnlunar-bun
-
 jobs:
   publish:
     runs-on: ubuntu-latest
